@@ -1,26 +1,6 @@
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, computed_field
-from typing import Literal, Annotated
-import pickle
-import pandas as pd
-
-# import the ml model
-with open('model.pkl', 'rb') as f:
-    model = pickle.load(f)
-
-app = FastAPI()
-
-tier_1_cities = ["Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata", "Hyderabad", "Pune"]
-tier_2_cities = [
-    "Jaipur", "Chandigarh", "Indore", "Lucknow", "Patna", "Ranchi", "Visakhapatnam", "Coimbatore",
-    "Bhopal", "Nagpur", "Vadodara", "Surat", "Rajkot", "Jodhpur", "Raipur", "Amritsar", "Varanasi",
-    "Agra", "Dehradun", "Mysore", "Jabalpur", "Guwahati", "Thiruvananthapuram", "Ludhiana", "Nashik",
-    "Allahabad", "Udaipur", "Aurangabad", "Hubli", "Belgaum", "Salem", "Vijayawada", "Tiruchirappalli",
-    "Bhavnagar", "Gwalior", "Dhanbad", "Bareilly", "Aligarh", "Gaya", "Kozhikode", "Warangal",
-    "Kolhapur", "Bilaspur", "Jalandhar", "Noida", "Guntur", "Asansol", "Siliguri"
-]
-
+from pydantic import BaseModel, Field, computed_field, field_validator
+from typing import Literal, Annotated 
+from config.city_tier import tier_1_cities, tier_2_cities
 # pydantic model to validate incoming data
 class UserInput(BaseModel):
 
@@ -70,22 +50,11 @@ class UserInput(BaseModel):
         else:
             return 3
 
-@app.post('/predict')
-def predict_premium(data: UserInput):
+        
+    @field_validator('city')
+    @classmethod
+    def normalize_city(cls, v: str) -> str:
+        v = v.strip().title()
+        return v
 
-    input_df = pd.DataFrame([{
-        'bmi': data.bmi,
-        'age_group': data.age_group,
-        'lifestyle_risk': data.lifestyle_risk,
-        'city_tier': data.city_tier,
-        'smoker': data.smoker,
-        'income_lpa': data.income_lpa,
-        'occupation': data.occupation
-    }])
-
-    try:
-        prediction = model.predict(input_df)[0]
-        return JSONResponse(status_code=200, content={'predicted_category': prediction})
-    except Exception as e:
-        return JSONResponse(status_code=500, content=str(e))
-
+ 
